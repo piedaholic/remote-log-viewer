@@ -5,7 +5,7 @@ fu = FileUtils()
 
 class FileUtilsTest(unittest.TestCase):
     def test_list():
-        print(fu.list('D:/'))
+        print(fu.list(''))
 
 if __name__ == '__main__':
     unittest.main()
