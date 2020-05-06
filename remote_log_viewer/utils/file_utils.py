@@ -1,10 +1,11 @@
 from pathlib import Path
 from shutil import copyfile
 import os
+import sys
+import re
 from os import listdir
 from os.path import isfile, join
 from os import walk
-
 # re.compile(r"^([a-z0-9.-]+|\[[a-f0-9]*:[a-f0-9\.:]+\])(:\d+)?$")
 '''
 Mode 	Description
@@ -57,19 +58,22 @@ class FileUtils():
 
     def read_file(file_path):
         my_file = Path(file_path)
-        if my_file.exists():
-            f = open(file_path, "r")
+        #if my_file.exists():
+        try:
+            f = open(file_path, mode='r', encoding='utf-8')
             file_content = f.read()
-        else:
-            file_content = ""
+        except Exception:
+            file_content = None
         return file_content
 
 
     def read_file_line_wise(file_path):
-        my_file = Path(file_path)
+        #my_file = Path(file_path)
         lines = list()
-        if my_file.exists():
-            f = open(file_path, "r")
+        #if my_file.exists():
+        f = None
+        try:
+            f = open(file_path, mode='r', encoding='utf-8')
             # lines = list(f)
             lines = f.readlines()
             '''
@@ -86,6 +90,11 @@ class FileUtils():
                 line = f.readline()
             '''
             f.close()
+        except Exception as e:
+            lines=None
+            if f is not None:
+                f.close()
+            #print('Errored File' + file_path + ' ' + format(e))
         return lines
 
 
@@ -185,7 +194,7 @@ class FileUtils():
         # print propDict
         return prop_dict
 
-    def list_files(path):
+    def list_files(self, path):
         onlyfiles = [f for f in listdir(path) if isfile(join(path, f))]
         return onlyfiles
 
@@ -193,5 +202,53 @@ class FileUtils():
         f = []
         for (dirpath, dirnames, filenames) in walk(path):
             f.extend(filenames)
+            print(dirnames)
             break
         return f
+
+    def find(self, path, regex, displayOnlyFiles, displayFullPath, recursionLevel):
+        f = set()
+        path = normalize_path(path)
+        count1 = len(re.findall(re.escape(os.sep),path))
+        if re.compile('^(.*)'+re.escape(os.sep)+'$').match(path):
+            count1 = count1 - 1
+
+        # print('displayOnlyFiles:'+str(displayOnlyFiles))
+        # print('displayFullPath:'+str(displayFullPath))
+        # print('recursionLevel:'+str(recursionLevel))
+        # print('path:'+ path)
+        # print('count1:'+ str(count1))
+
+        if recursionLevel is None:
+            recursionLevel = sys.maxsize
+        for (dirpath, dirnames, filenames) in walk(path):
+            count2 = len(re.findall(re.escape(os.sep),dirpath))
+            #count2 = dirpath.count(re.escape(os.sep))
+            if re.compile('^(.*)'+re.escape(os.sep)+'$').match(dirpath):
+                count2 = count2 - 1
+            level = count2 - count1
+            if ( level <= recursionLevel):
+                for filename in filenames:
+                    if re.search(regex, filename):
+                            if (displayFullPath):
+                                f.add(os.path.join(dirpath,filename))
+                                # print('count2:' + str(count2))
+                                # print('level:' + str(level))
+                                # print('dirpath:' + dirpath)
+                            else:
+                                f.add(filename)
+                    if displayOnlyFiles:
+                        for dirname in dirnames:
+                            if re.search(regex, dirname):
+                                if (displayFullPath):
+                                    f.add(os.path.join(dirpath,dirname))
+                                else:
+                                    f.add(dirname)
+        return f
+
+    def normalize_path(path):
+        # path=re.sub(r'/|\\', re.escape(os.sep), path)
+        # if re.compile('^(.*)'+re.escape(os.sep)+'$').match(path):
+        #         path = re.compile('^(.*)'+re.escape(os.sep)+'$').match(path).group(1)
+        # return path
+        return re.sub(r'/|\\', re.escape(os.sep), path)
