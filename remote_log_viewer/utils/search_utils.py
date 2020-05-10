@@ -2,6 +2,7 @@ from file_utils import FileUtils
 import sys
 import threading
 import time
+import re
 
 NO_OF_CHARS = 256
 
@@ -47,6 +48,37 @@ class SearchUtils:
                 else:
                     i += 1
         return results
+
+    def knuth_morris_pratt(self, pat, txt):
+        M = len(pat)
+        N = len(txt)
+
+        # create lps[] that will hold the longest prefix suffix
+        # values for pattern
+        lps = [0]*M
+        j = 0 # index for pat[]
+
+        # Preprocess the pattern (calculate lps[] array)
+        self.computeLPSArray(pat, M, lps)
+
+        i = 0 # index for txt[]
+        while i < N:
+            if pat[j] == txt[i]:
+                i += 1
+                j += 1
+
+            if j == M:
+                return True
+
+            # mismatch after j matches
+            elif i < N and pat[j] != txt[i]:
+                # Do not match lps[0..lps[j-1]] characters,
+                # they will match anyway
+                if j != 0:
+                    j = lps[j-1]
+                else:
+                    i += 1
+        return False
 
     def computeLPSArray(self, pat, M, lps):
     	len = 0 # length of the previous longest prefix suffix
@@ -94,6 +126,28 @@ class SearchUtils:
         except Exception as e :
             print('Exception Occurred ' , e)
         return results
+
+    def boyer_moore(self, pattern, text):
+        results = list()
+        m = len(pattern)
+        n = len(text)
+        try :
+            if m > n: return -1
+            skip = []
+            for k in range(256): skip.append(m)
+            for k in range(m - 1): skip[ord(pattern[k])] = m - k - 1
+            skip = tuple(skip)
+            k = m - 1
+            while k < n:
+                j = m - 1; i = k
+                while j >= 0 and text[i] == pattern[j]:
+                    j -= 1; i -= 1
+                if j == -1:
+                    return True
+                k += skip[ord(text[k])]
+        except Exception as e :
+            print('Exception Occurred ' , e)
+        return False
 
     def rabin_karp_search(self, pattern, text):
         """
@@ -180,5 +234,11 @@ class SearchUtils:
     def regex_search(self,pattern,text):
         results = list()
         #[(m.start(0), m.end(0)) for m in re.finditer(pattern, text)]
-        [ results.add(m.start(0)) for m in re.finditer(pattern, text)]
+        [ results.append(m.start(0)) for m in re.finditer(pattern, text)]
         return results
+
+    def regex(self,pattern,text):
+        if re.finditer(pattern, text) is not None:
+            return True
+        else:
+            return False
